@@ -1,0 +1,15 @@
+venv/
+.venv/
+.git/
+.gitignore
+.github/
+artifacts/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.ipynb
+.env
+.vscode/
+Jenkinsfile
+setup.bat
+readme.md
