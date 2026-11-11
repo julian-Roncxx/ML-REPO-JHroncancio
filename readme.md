@@ -37,6 +37,11 @@ Una entidad financiera otorga créditos y necesita saber, **antes de desembolsar
 
 **Preprocesamiento:** las numéricas se recortan a los percentiles 1–99 (control de extremos), se imputan con la mediana y se estandarizan; las categóricas se imputan y se codifican *one-hot*; `tendencia_ingresos` se codifica como ordinal (SIN_DATO < Decreciente < Estable < Creciente). El preprocesador se ajusta solo con los datos de entrenamiento para evitar fugas.
 
+#configuracion venv:
+  python -m venv venv
+  venv\Scripts\activate        # Windows
+  source venv/bin/activate     # Linux/Mac
+  pip install -r requirements.txt
 ## 4. Resultados de los modelos
 
 Clase de interés: **0 (no pagó a tiempo)**. Evaluación sobre 2,153 créditos de prueba.
