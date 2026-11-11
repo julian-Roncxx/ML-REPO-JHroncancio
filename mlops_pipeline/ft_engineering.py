@@ -52,6 +52,10 @@ COLS_NUMERICAS = [
     "cuota_sobre_salario", "capital_sobre_salario", "deuda_sobre_salario",
     "creditos_total_sectores", "tiene_mora", "tiene_mora_codeudor", "sin_ingresos_dc",
 ]
+DERIVADAS = [
+    "cuota_sobre_salario", "capital_sobre_salario", "deuda_sobre_salario",
+    "creditos_total_sectores", "tiene_mora", "tiene_mora_codeudor", "sin_ingresos_dc",
+]
 COLS_CATEGORICAS = ["tipo_credito", "tipo_laboral"]
 COLS_ORDINALES = ["tendencia_ingresos"]
 
@@ -84,9 +88,11 @@ def limpiar_datos(df: pd.DataFrame) -> pd.DataFrame:
     # 4) tipo_laboral como texto (object) con NaN estándar
     df["tipo_laboral"] = df["tipo_laboral"].astype(object)
 
-    # 5) Fecha y objetivo
-    df["fecha_prestamo"] = pd.to_datetime(df["fecha_prestamo"])
-    df[TARGET] = df[TARGET].astype("int8")
+    # 5) Fecha y objetivo (en datos nuevos, p. ej. los de la API, pueden no venir)
+    if "fecha_prestamo" in df.columns:
+        df["fecha_prestamo"] = pd.to_datetime(df["fecha_prestamo"])
+    if TARGET in df.columns:
+        df[TARGET] = df[TARGET].astype("int8")
     return df
 
 
@@ -180,6 +186,30 @@ def preparar_dataframe() -> pd.DataFrame:
     return crear_variables_derivadas(limpiar_datos(cargar_datos()))
 
 
+def columnas_modelo(incluir_puntaje: bool = INCLUIR_PUNTAJE) -> list:
+    """Columnas que recibe el modelo, en el orden de entrenamiento."""
+    return COLS_NUMERICAS + (["puntaje"] if incluir_puntaje else []) + COLS_CATEGORICAS + COLS_ORDINALES
+
+
+def preparar_entrada(df_crudo: pd.DataFrame) -> pd.DataFrame:
+    """Convierte registros CRUDOS (como llegan del negocio o de la API) en las columnas
+    que espera el modelo: aplica la misma limpieza y las mismas variables derivadas.
+    Las columnas ausentes se crean vacías y el pipeline las imputa."""
+    df = crear_variables_derivadas(limpiar_datos(_completar_columnas(df_crudo)))
+    return df[columnas_modelo()]
+
+
+def _completar_columnas(df: pd.DataFrame) -> pd.DataFrame:
+    """Agrega como NaN las columnas crudas que no vengan en el registro."""
+    df = df.copy()
+    crudas = [c for c in COLS_NUMERICAS + COLS_CATEGORICAS + COLS_ORDINALES
+              if c not in DERIVADAS]
+    for c in crudas:
+        if c not in df.columns:
+            df[c] = np.nan
+    return df
+
+
 def get_datasets(incluir_puntaje: bool = INCLUIR_PUNTAJE, test_size: float = TEST_SIZE,
                  random_state: int = RANDOM_STATE):
     """Devuelve X_train, X_test, y_train, y_test y el preprocesador SIN ajustar.
@@ -190,7 +220,7 @@ def get_datasets(incluir_puntaje: bool = INCLUIR_PUNTAJE, test_size: float = TES
     df = preparar_dataframe()
 
     numericas = COLS_NUMERICAS + (["puntaje"] if incluir_puntaje else [])
-    columnas = numericas + COLS_CATEGORICAS + COLS_ORDINALES
+    columnas = columnas_modelo(incluir_puntaje)
     X, y = df[columnas], df[TARGET]
 
     X_train, X_test, y_train, y_test = train_test_split(
