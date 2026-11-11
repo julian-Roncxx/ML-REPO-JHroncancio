@@ -1,0 +1,4 @@
+# Dependencias solo para pruebas y CI (se instalan además de requirements.txt)
+pytest
+pytest-cov
+httpx
